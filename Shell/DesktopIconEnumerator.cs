@@ -200,7 +200,84 @@ public static class DesktopIconEnumerator
         item.Icon = GetFallbackIcon();
     }
 
+    private const int IconRequestSize = 512;
+
     private static BitmapSource? GetIconForPath(string path, bool isFolder)
+    {
+        var highRes = GetHighResIcon(path);
+        if (highRes != null)
+            return highRes;
+
+        return GetIconViaShGetFileInfo(path, isFolder);
+    }
+
+    private static BitmapSource? GetHighResIcon(string path)
+    {
+        try
+        {
+            NativeMethods.SHCreateItemFromParsingName(
+                path, IntPtr.Zero, NativeMethods.IID_IShellItemImageFactory, out var obj);
+
+            var factory = (NativeMethods.IShellItemImageFactory)obj;
+            var size = new NativeMethods.SIZE(IconRequestSize, IconRequestSize);
+            int hr = factory.GetImage(size, NativeMethods.SIIGBF.ICONONLY | NativeMethods.SIIGBF.BIGGERSIZEOK, out var hBitmap);
+
+            if (hr != 0 || hBitmap == IntPtr.Zero)
+                return null;
+
+            try
+            {
+                return HBitmapToBitmapSource(hBitmap);
+            }
+            finally
+            {
+                NativeMethods.DeleteObject(hBitmap);
+            }
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static BitmapSource? HBitmapToBitmapSource(IntPtr hBitmap)
+    {
+        var bmp = new NativeMethods.BITMAP();
+        NativeMethods.GetObject(hBitmap, Marshal.SizeOf<NativeMethods.BITMAP>(), ref bmp);
+
+        if (bmp.bmWidth <= 0 || bmp.bmHeight <= 0)
+            return null;
+
+        if (bmp.bmBitsPixel == 32 && bmp.bmBits != IntPtr.Zero)
+        {
+            int stride = bmp.bmWidth * 4;
+            int byteCount = stride * bmp.bmHeight;
+            var pixels = new byte[byteCount];
+            Marshal.Copy(bmp.bmBits, pixels, 0, byteCount);
+
+            var flipped = new byte[byteCount];
+            for (int y = 0; y < bmp.bmHeight; y++)
+            {
+                Buffer.BlockCopy(pixels, (bmp.bmHeight - 1 - y) * stride,
+                                 flipped, y * stride, stride);
+            }
+
+            var source = BitmapSource.Create(
+                bmp.bmWidth, bmp.bmHeight, 96, 96,
+                System.Windows.Media.PixelFormats.Pbgra32,
+                null, flipped, stride);
+            source.Freeze();
+            return source;
+        }
+
+        var fallback = Imaging.CreateBitmapSourceFromHBitmap(
+            hBitmap, IntPtr.Zero, Int32Rect.Empty,
+            BitmapSizeOptions.FromEmptyOptions());
+        fallback.Freeze();
+        return fallback;
+    }
+
+    private static BitmapSource? GetIconViaShGetFileInfo(string path, bool isFolder)
     {
         var shfi = new NativeMethods.SHFILEINFO();
         uint flags = NativeMethods.SHGFI_ICON | NativeMethods.SHGFI_LARGEICON;

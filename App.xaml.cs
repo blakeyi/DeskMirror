@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
@@ -25,6 +26,12 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "debug.log");
+        Trace.Listeners.Add(new TextWriterTraceListener(logPath));
+        Trace.AutoFlush = true;
+        Trace.WriteLine($"=== App started at {DateTime.Now} ===");
+
         DispatcherUnhandledException += OnUnhandledException;
 
         _settings = SettingsService.Load();

@@ -1,10 +1,13 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DesktopIconMirror.Models;
 using DesktopIconMirror.Monitor;
+using DesktopIconMirror.Native;
 using DesktopIconMirror.Shell;
 
 namespace DesktopIconMirror.ViewModels;
@@ -63,12 +66,146 @@ public partial class MirrorViewModel : ObservableObject
 
         try
         {
+            if (icon.TargetPath.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase)
+                && TryActivateExistingApp(icon.TargetPath, icon.Name))
+                return;
+
             Process.Start(new ProcessStartInfo(icon.TargetPath) { UseShellExecute = true });
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Failed to open {icon.TargetPath}: {ex.Message}");
+            Trace.WriteLine($"[OpenIcon] Failed to open {icon.TargetPath}: {ex}");
         }
+    }
+
+    private static bool TryActivateExistingApp(string lnkPath, string? iconName)
+    {
+        try
+        {
+            var targetExe = ResolveShortcutTarget(lnkPath);
+            Trace.WriteLine($"[TryActivate] Shortcut target: {targetExe ?? "(null)"}, iconName: {iconName}");
+            if (string.IsNullOrEmpty(targetExe))
+                return false;
+
+            var exeName = Path.GetFileNameWithoutExtension(targetExe);
+            var processes = Process.GetProcessesByName(exeName);
+            Trace.WriteLine($"[TryActivate] Process '{exeName}': found {processes.Length} instance(s)");
+
+            if (processes.Length == 0)
+                return false;
+
+            // Strategy 1: UI Automation tray icon click (most reliable on Win11)
+            if (!string.IsNullOrEmpty(iconName) && TrayIconHelper.TryClickViaUIAutomation(iconName))
+            {
+                Trace.WriteLine("[TryActivate] UI Automation tray click succeeded");
+                return true;
+            }
+
+            // Strategy 2: toolbar-based tray icon click (Win10)
+            var pids = processes.Select(p => (uint)p.Id);
+            if (TrayIconHelper.TryClickTrayIcon(pids))
+            {
+                Trace.WriteLine("[TryActivate] Tray icon click succeeded");
+                return true;
+            }
+
+            // Strategy 3: activate the largest visible window
+            var targetPids = new HashSet<uint>(processes.Select(p => (uint)p.Id));
+            var candidates = new List<(IntPtr hwnd, int area)>();
+
+            NativeMethods.EnumWindows((hwnd, _) =>
+            {
+                NativeMethods.GetWindowThreadProcessId(hwnd, out uint pid);
+                if (targetPids.Contains(pid)
+                    && NativeMethods.IsWindowVisible(hwnd)
+                    && NativeMethods.GetWindowTextLength(hwnd) > 0)
+                {
+                    NativeMethods.GetWindowRect(hwnd, out NativeMethods.RECT rc);
+                    if (rc.Area > 10000)
+                        candidates.Add((hwnd, rc.Area));
+                }
+                return true;
+            }, IntPtr.Zero);
+
+            var best = candidates.OrderByDescending(w => w.area).FirstOrDefault();
+            if (best.hwnd != IntPtr.Zero)
+            {
+                Trace.WriteLine($"[TryActivate] Activating visible window 0x{best.hwnd:X} (area={best.area})");
+                ForceActivateWindow(best.hwnd);
+                return true;
+            }
+
+            Trace.WriteLine("[TryActivate] All strategies failed, falling back to Process.Start");
+        }
+        catch (Exception ex)
+        {
+            Trace.WriteLine($"[TryActivate] EXCEPTION: {ex}");
+        }
+
+        return false;
+    }
+
+    private static void ForceActivateWindow(IntPtr hwnd)
+    {
+        var foreground = NativeMethods.GetForegroundWindow();
+        uint foregroundThread = NativeMethods.GetWindowThreadProcessId(foreground, out _);
+        uint targetThread = NativeMethods.GetWindowThreadProcessId(hwnd, out _);
+
+        bool attached = false;
+        if (foregroundThread != targetThread)
+            attached = NativeMethods.AttachThreadInput(foregroundThread, targetThread, true);
+
+        try
+        {
+            if (NativeMethods.IsIconic(hwnd))
+                NativeMethods.ShowWindow(hwnd, NativeMethods.SW_RESTORE);
+
+            NativeMethods.BringWindowToTop(hwnd);
+            NativeMethods.SetForegroundWindow(hwnd);
+        }
+        finally
+        {
+            if (attached)
+                NativeMethods.AttachThreadInput(foregroundThread, targetThread, false);
+        }
+    }
+
+    private static string? ResolveShortcutTarget(string lnkPath)
+    {
+        try
+        {
+            var shellType = Type.GetTypeFromProgID("WScript.Shell");
+            if (shellType == null) return null;
+
+            dynamic shell = Activator.CreateInstance(shellType)!;
+            dynamic shortcut = shell.CreateShortcut(lnkPath);
+            string target = shortcut.TargetPath;
+
+            Marshal.FinalReleaseComObject(shortcut);
+            Marshal.FinalReleaseComObject(shell);
+
+            return string.IsNullOrEmpty(target) ? null : target;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string GetWindowTitle(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero) return "";
+        var sb = new System.Text.StringBuilder(256);
+        NativeMethods.GetWindowText(hwnd, sb, sb.Capacity);
+        return sb.ToString();
+    }
+
+    private static string GetWindowClass(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero) return "";
+        var sb = new System.Text.StringBuilder(256);
+        NativeMethods.GetClassName(hwnd, sb, sb.Capacity);
+        return sb.ToString();
     }
 
     [RelayCommand]
