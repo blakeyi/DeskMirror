@@ -1,0 +1,78 @@
+<Window x:Class="DesktopIconMirror.Views.MirrorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:DesktopIconMirror.ViewModels"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        Topmost="False"
+        ResizeMode="NoResize">
+
+    <Window.DataContext>
+        <vm:MirrorViewModel />
+    </Window.DataContext>
+
+    <Grid MouseLeftButtonDown="Grid_MouseLeftButtonDown">
+        <ItemsControl ItemsSource="{Binding Icons}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <Canvas />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+
+            <ItemsControl.ItemContainerStyle>
+                <Style TargetType="ContentPresenter">
+                    <Setter Property="Canvas.Left" Value="{Binding MirrorX}" />
+                    <Setter Property="Canvas.Top" Value="{Binding MirrorY}" />
+                </Style>
+            </ItemsControl.ItemContainerStyle>
+
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border x:Name="IconBorder"
+                            Padding="4" CornerRadius="3"
+                            Background="Transparent"
+                            BorderThickness="1"
+                            BorderBrush="Transparent"
+                            Cursor="Hand"
+                            MouseLeftButtonDown="Icon_MouseLeftButtonDown"
+                            MouseRightButtonUp="Icon_MouseRightButtonUp">
+
+                        <Border.InputBindings>
+                            <MouseBinding Gesture="LeftDoubleClick"
+                                          Command="{Binding DataContext.OpenIconCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                          CommandParameter="{Binding}" />
+                        </Border.InputBindings>
+
+                        <StackPanel Width="72">
+                            <Image Source="{Binding Icon}" Width="48" Height="48"
+                                   HorizontalAlignment="Center"
+                                   RenderOptions.BitmapScalingMode="HighQuality" />
+                            <TextBlock Text="{Binding Name}"
+                                       Foreground="White"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       TextTrimming="CharacterEllipsis"
+                                       MaxWidth="72" MaxHeight="34"
+                                       FontSize="12"
+                                       Margin="0,2,0,0"
+                                       LineHeight="16">
+                                <TextBlock.Effect>
+                                    <DropShadowEffect ShadowDepth="1" BlurRadius="3" Color="Black" Opacity="0.9" />
+                                </TextBlock.Effect>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <DataTemplate.Triggers>
+                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                            <Setter TargetName="IconBorder" Property="Background" Value="#3399D6FF" />
+                            <Setter TargetName="IconBorder" Property="BorderBrush" Value="#6699D6FF" />
+                        </DataTrigger>
+                    </DataTemplate.Triggers>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </Grid>
+</Window>

@@ -1,0 +1,71 @@
+<Window x:Class="DesktopIconMirror.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Desktop Icon Mirror - 设置"
+        Width="420" Height="360"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        ShowInTaskbar="True">
+
+    <Window.Resources>
+        <Style TargetType="TextBlock" x:Key="LabelStyle">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,12,0" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="目标显示器：" Style="{StaticResource LabelStyle}" />
+        <ComboBox Grid.Row="0" Grid.Column="1" x:Name="MonitorComboBox"
+                  Margin="0,0,0,12" Padding="6,4" />
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="图标大小：" Style="{StaticResource LabelStyle}" />
+        <ComboBox Grid.Row="1" Grid.Column="1" x:Name="IconSizeComboBox"
+                  Margin="0,0,0,12" Padding="6,4">
+            <ComboBoxItem Content="小 (32px)" Tag="32" />
+            <ComboBoxItem Content="中 (48px)" Tag="48" IsSelected="True" />
+            <ComboBoxItem Content="大 (64px)" Tag="64" />
+        </ComboBox>
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="刷新间隔：" Style="{StaticResource LabelStyle}" />
+        <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,12">
+            <Slider x:Name="PollIntervalSlider" Width="200"
+                    Minimum="500" Maximum="5000" Value="1500"
+                    TickFrequency="500" IsSnapToTickEnabled="True"
+                    VerticalAlignment="Center" />
+            <TextBlock VerticalAlignment="Center" Margin="8,0,0,0">
+                <Run Text="{Binding Value, ElementName=PollIntervalSlider, StringFormat={}{0:0}}" />
+                <Run Text="ms" />
+            </TextBlock>
+        </StackPanel>
+
+        <CheckBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                  x:Name="AutoStartCheckBox" Content="开机自动启动" Margin="0,0,0,12" />
+
+        <CheckBox Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
+                  x:Name="MirrorLayoutCheckBox" Content="镜像主屏布局（而非自动网格排列）"
+                  IsChecked="True" Margin="0,0,0,12" />
+
+        <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2"
+                    Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="保存" Width="80" Padding="0,6" Margin="0,0,8,0"
+                    Click="Save_Click" IsDefault="True" />
+            <Button Content="取消" Width="80" Padding="0,6"
+                    Click="Cancel_Click" IsCancel="True" />
+        </StackPanel>
+    </Grid>
+</Window>
