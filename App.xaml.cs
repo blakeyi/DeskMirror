@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using DesktopIconMirror.Monitor;
+using DesktopIconMirror.Native;
 using DesktopIconMirror.Services;
 using DesktopIconMirror.Shell;
 using DesktopIconMirror.ViewModels;
@@ -20,8 +21,10 @@ public partial class App : Application
     private MirrorWindow? _mirrorWindow;
     private MirrorViewModel? _viewModel;
     private DesktopIconWatcher? _watcher;
+    private DispatcherTimer? _watchdogTimer;
     private AppSettings _settings = new();
     private bool _isRefreshing;
+    private bool _userHidden;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -37,6 +40,7 @@ public partial class App : Application
         _settings = SettingsService.Load();
         InitializeTrayIcon();
         InitializeMirrorWindow();
+        StartWatchdog();
     }
 
     private void InitializeTrayIcon()
@@ -123,6 +127,64 @@ public partial class App : Application
         _watcher.Start(hwnd);
     }
 
+    private void StartWatchdog()
+    {
+        _watchdogTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+        _watchdogTimer.Tick += (_, _) =>
+        {
+            if (_userHidden || _mirrorWindow == null) return;
+
+            if (!IsWindowAlive(_mirrorWindow))
+            {
+                Trace.WriteLine("[Watchdog] Window dead, recreating...");
+                _mirrorWindow = null;
+                _watcher?.Dispose();
+                InitializeMirrorWindow();
+                return;
+            }
+
+            bool desktopNow = IsDesktopForeground();
+            bool wasBefore = _mirrorWindow.DesktopShown;
+
+            if (desktopNow && !wasBefore)
+            {
+                Trace.WriteLine("[Watchdog] Desktop shown (Win+D), popping window above desktop");
+                _mirrorWindow.DesktopShown = true;
+                _mirrorWindow.BringAboveDesktop();
+            }
+            else if (!desktopNow && wasBefore)
+            {
+                Trace.WriteLine("[Watchdog] Desktop hidden, sending window back to bottom");
+                _mirrorWindow.DesktopShown = false;
+            }
+        };
+        _watchdogTimer.Start();
+    }
+
+    private static bool IsDesktopForeground()
+    {
+        var fg = NativeMethods.GetForegroundWindow();
+        if (fg == IntPtr.Zero) return false;
+
+        var sb = new System.Text.StringBuilder(256);
+        NativeMethods.GetClassName(fg, sb, 256);
+        string cls = sb.ToString();
+        return cls is "Progman" or "WorkerW";
+    }
+
+    private static bool IsWindowAlive(Window w)
+    {
+        try
+        {
+            var hwnd = new WindowInteropHelper(w).Handle;
+            return hwnd != IntPtr.Zero;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private void OnDesktopChanged()
     {
         if (_isRefreshing) return;
@@ -160,16 +222,26 @@ public partial class App : Application
 
     private void TrayMenu_ToggleVisibility(object sender, RoutedEventArgs e)
     {
-        if (_mirrorWindow == null)
+        if (_mirrorWindow == null || !IsWindowAlive(_mirrorWindow))
         {
+            _userHidden = false;
+            _mirrorWindow = null;
+            _watcher?.Dispose();
             InitializeMirrorWindow();
             return;
         }
 
         if (_mirrorWindow.IsVisible)
+        {
+            _userHidden = true;
             _mirrorWindow.Hide();
+        }
         else
+        {
+            _userHidden = false;
             _mirrorWindow.Show();
+            _mirrorWindow.WindowState = WindowState.Normal;
+        }
     }
 
     private void TrayMenu_Refresh(object sender, RoutedEventArgs e)

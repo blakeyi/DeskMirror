@@ -16,6 +16,7 @@ namespace DesktopIconMirror.Views;
 public partial class MirrorWindow : Window
 {
     private MirrorViewModel ViewModel => (MirrorViewModel)DataContext;
+    private System.Drawing.Rectangle _rawBounds;
 
     public MirrorWindow()
     {
@@ -28,6 +29,7 @@ public partial class MirrorWindow : Window
         Top = monitor.WorkingArea.Top / dpiScale;
         Width = monitor.WorkingArea.Width / dpiScale;
         Height = monitor.WorkingArea.Height / dpiScale;
+        _rawBounds = monitor.WorkingArea;
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -38,6 +40,8 @@ public partial class MirrorWindow : Window
         SendToBottom();
     }
 
+    internal bool DesktopShown { get; set; }
+
     private void SendToBottom()
     {
         var hwnd = new WindowInteropHelper(this).Handle;
@@ -45,17 +49,24 @@ public partial class MirrorWindow : Window
             NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOACTIVATE);
     }
 
+    internal void BringAboveDesktop()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        NativeMethods.SetWindowPos(hwnd, new IntPtr(-1) /*HWND_TOPMOST*/, 0, 0, 0, 0,
+            NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOACTIVATE);
+        NativeMethods.SetWindowPos(hwnd, new IntPtr(-2) /*HWND_NOTOPMOST*/, 0, 0, 0, 0,
+            NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOACTIVATE);
+    }
+
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (msg == NativeMethods.WM_WINDOWPOSCHANGING)
+        if (msg == NativeMethods.WM_WINDOWPOSCHANGING && !DesktopShown)
         {
             var pos = Marshal.PtrToStructure<NativeMethods.WINDOWPOS>(lParam);
             pos.hwndInsertAfter = NativeMethods.HWND_BOTTOM;
             pos.flags &= ~NativeMethods.SWP_NOZORDER;
             Marshal.StructureToPtr(pos, lParam, true);
-            handled = false;
         }
-
         return IntPtr.Zero;
     }
 
