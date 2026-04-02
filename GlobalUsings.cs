@@ -5,3 +5,6 @@ global using ContextMenu = System.Windows.Controls.ContextMenu;
 global using MenuItem = System.Windows.Controls.MenuItem;
 global using Separator = System.Windows.Controls.Separator;
 global using Clipboard = System.Windows.Clipboard;
+global using DragEventArgs = System.Windows.DragEventArgs;
+global using DataFormats = System.Windows.DataFormats;
+global using DragDropEffects = System.Windows.DragDropEffects;

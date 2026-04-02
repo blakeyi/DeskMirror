@@ -36,7 +36,13 @@
                             BorderThickness="1"
                             BorderBrush="Transparent"
                             Cursor="Hand"
+                            AllowDrop="True"
+                            DragEnter="Icon_DragEnter"
+                            DragOver="Icon_DragOver"
+                            DragLeave="Icon_DragLeave"
+                            Drop="Icon_Drop"
                             MouseLeftButtonDown="Icon_MouseLeftButtonDown"
+                            MouseMove="Icon_MouseMove"
                             MouseRightButtonUp="Icon_MouseRightButtonUp">
 
                         <Border.InputBindings>

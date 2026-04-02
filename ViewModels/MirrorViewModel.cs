@@ -94,44 +94,30 @@ public partial class MirrorViewModel : ObservableObject
             if (processes.Length == 0)
                 return false;
 
-            // Strategy 1: UI Automation tray icon click (most reliable on Win11)
-            if (!string.IsNullOrEmpty(iconName) && TrayIconHelper.TryClickViaUIAutomation(iconName))
+            var targetPids = new HashSet<uint>(processes.Select(p => (uint)p.Id));
+
+            // Strategy 1: if there's already a visible window, just activate it
+            var visibleWnd = FindLargestVisibleWindow(targetPids);
+            if (visibleWnd != IntPtr.Zero)
+            {
+                Trace.WriteLine($"[TryActivate] Found visible window 0x{visibleWnd:X}, activating");
+                ForceActivateWindow(visibleWnd);
+                return true;
+            }
+
+            // Strategy 2: no visible window → app is in tray, use UI Automation (Win11)
+            if (!string.IsNullOrEmpty(iconName)
+                && TrayIconHelper.TryClickViaUIAutomation(iconName, targetPids))
             {
                 Trace.WriteLine("[TryActivate] UI Automation tray click succeeded");
                 return true;
             }
 
-            // Strategy 2: toolbar-based tray icon click (Win10)
+            // Strategy 3: toolbar-based tray icon click (Win10)
             var pids = processes.Select(p => (uint)p.Id);
             if (TrayIconHelper.TryClickTrayIcon(pids))
             {
-                Trace.WriteLine("[TryActivate] Tray icon click succeeded");
-                return true;
-            }
-
-            // Strategy 3: activate the largest visible window
-            var targetPids = new HashSet<uint>(processes.Select(p => (uint)p.Id));
-            var candidates = new List<(IntPtr hwnd, int area)>();
-
-            NativeMethods.EnumWindows((hwnd, _) =>
-            {
-                NativeMethods.GetWindowThreadProcessId(hwnd, out uint pid);
-                if (targetPids.Contains(pid)
-                    && NativeMethods.IsWindowVisible(hwnd)
-                    && NativeMethods.GetWindowTextLength(hwnd) > 0)
-                {
-                    NativeMethods.GetWindowRect(hwnd, out NativeMethods.RECT rc);
-                    if (rc.Area > 10000)
-                        candidates.Add((hwnd, rc.Area));
-                }
-                return true;
-            }, IntPtr.Zero);
-
-            var best = candidates.OrderByDescending(w => w.area).FirstOrDefault();
-            if (best.hwnd != IntPtr.Zero)
-            {
-                Trace.WriteLine($"[TryActivate] Activating visible window 0x{best.hwnd:X} (area={best.area})");
-                ForceActivateWindow(best.hwnd);
+                Trace.WriteLine("[TryActivate] Toolbar tray click succeeded");
                 return true;
             }
 
@@ -143,6 +129,31 @@ public partial class MirrorViewModel : ObservableObject
         }
 
         return false;
+    }
+
+    private static IntPtr FindLargestVisibleWindow(HashSet<uint> targetPids)
+    {
+        IntPtr bestHwnd = IntPtr.Zero;
+        int bestArea = 0;
+
+        NativeMethods.EnumWindows((hwnd, _) =>
+        {
+            NativeMethods.GetWindowThreadProcessId(hwnd, out uint pid);
+            if (targetPids.Contains(pid)
+                && NativeMethods.IsWindowVisible(hwnd)
+                && NativeMethods.GetWindowTextLength(hwnd) > 0)
+            {
+                NativeMethods.GetWindowRect(hwnd, out NativeMethods.RECT rc);
+                if (rc.Area > bestArea)
+                {
+                    bestArea = rc.Area;
+                    bestHwnd = hwnd;
+                }
+            }
+            return true;
+        }, IntPtr.Zero);
+
+        return bestArea > 50000 ? bestHwnd : IntPtr.Zero;
     }
 
     private static void ForceActivateWindow(IntPtr hwnd)

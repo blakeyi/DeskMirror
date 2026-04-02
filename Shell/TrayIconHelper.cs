@@ -12,7 +12,7 @@ internal static class TrayIconHelper
     /// Use Windows UI Automation to find a tray icon by display name and click it.
     /// Works on Windows 11 where the notification area is XAML-based.
     /// </summary>
-    public static bool TryClickViaUIAutomation(string iconName)
+    public static bool TryClickViaUIAutomation(string iconName, HashSet<uint> targetPids)
     {
         Trace.WriteLine($"[TrayUIA] Searching for tray icon named \"{iconName}\"...");
 
@@ -41,9 +41,15 @@ internal static class TrayIconHelper
             foreach (AutomationElement btn in allButtons)
             {
                 string name = btn.Current.Name ?? "";
+                string cls = btn.Current.ClassName ?? "";
+
+                // Skip taskbar app buttons — we only want tray icons
+                if (cls.Contains("TaskListButton", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
                 if (name.Contains(iconName, StringComparison.OrdinalIgnoreCase))
                 {
-                    Trace.WriteLine($"[TrayUIA] Match: \"{name}\" (ClassName={btn.Current.ClassName})");
+                    Trace.WriteLine($"[TrayUIA] Match: \"{name}\" (ClassName={cls})");
                     match = btn;
                     break;
                 }
@@ -133,34 +139,45 @@ internal static class TrayIconHelper
                 return false;
             }
 
-            // Try InvokePattern first (standard button click)
+            var rect = match.Current.BoundingRectangle;
+            int cx = rect.IsEmpty ? 0 : (int)(rect.X + rect.Width / 2);
+            int cy = rect.IsEmpty ? 0 : (int)(rect.Y + rect.Height / 2);
+
+            // Step 1: single click (works for WeChat etc.)
             if (match.TryGetCurrentPattern(InvokePattern.Pattern, out object? invokeObj))
             {
                 ((InvokePattern)invokeObj).Invoke();
-                Trace.WriteLine("[TrayUIA] Invoked via InvokePattern");
-                return true;
+                Trace.WriteLine("[TrayUIA] Single-click via InvokePattern");
             }
-
-            // Try TogglePattern
-            if (match.TryGetCurrentPattern(TogglePattern.Pattern, out object? toggleObj))
+            else if (!rect.IsEmpty)
             {
-                ((TogglePattern)toggleObj).Toggle();
-                Trace.WriteLine("[TrayUIA] Invoked via TogglePattern");
+                Trace.WriteLine($"[TrayUIA] Single-click at ({cx}, {cy})");
+                SimulateClick(cx, cy);
+            }
+
+            // Check if a window appeared
+            Thread.Sleep(400);
+            if (CountVisibleWindows(targetPids) > 0)
+            {
+                Trace.WriteLine("[TrayUIA] Window appeared after single-click");
                 return true;
             }
 
-            // Fallback: simulate click at the element's center using SendInput
-            var rect = match.Current.BoundingRectangle;
+            // Step 2: double-click (works for Everything etc.)
             if (!rect.IsEmpty)
             {
-                int cx = (int)(rect.X + rect.Width / 2);
-                int cy = (int)(rect.Y + rect.Height / 2);
-                Trace.WriteLine($"[TrayUIA] Clicking at ({cx}, {cy})");
-                SimulateClick(cx, cy);
-                return true;
+                Trace.WriteLine($"[TrayUIA] No window yet, trying double-click at ({cx}, {cy})");
+                SimulateDoubleClick(cx, cy);
+                Thread.Sleep(400);
+
+                if (CountVisibleWindows(targetPids) > 0)
+                {
+                    Trace.WriteLine("[TrayUIA] Window appeared after double-click");
+                    return true;
+                }
             }
 
-            Trace.WriteLine("[TrayUIA] No interaction pattern available and no bounding rect");
+            Trace.WriteLine("[TrayUIA] No window appeared after single+double click");
         }
         catch (Exception ex)
         {
@@ -172,12 +189,16 @@ internal static class TrayIconHelper
 
     private static void SimulateClick(int screenX, int screenY)
     {
+        NativeMethods.GetCursorPos(out var savedPos);
+
         int normalizedX = screenX * 65535 / NativeMethods.GetSystemMetrics(0);
         int normalizedY = screenY * 65535 / NativeMethods.GetSystemMetrics(1);
+        int restoreX = savedPos.X * 65535 / NativeMethods.GetSystemMetrics(0);
+        int restoreY = savedPos.Y * 65535 / NativeMethods.GetSystemMetrics(1);
 
-        var inputs = new NativeMethods.INPUT[3];
+        var inputs = new NativeMethods.INPUT[4];
 
-        inputs[0].type = 0; // INPUT_MOUSE
+        inputs[0].type = 0;
         inputs[0].u.mi.dx = normalizedX;
         inputs[0].u.mi.dy = normalizedY;
         inputs[0].u.mi.dwFlags = 0x8001; // MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE
@@ -188,7 +209,66 @@ internal static class TrayIconHelper
         inputs[2].type = 0;
         inputs[2].u.mi.dwFlags = 0x0004; // MOUSEEVENTF_LEFTUP
 
+        inputs[3].type = 0;
+        inputs[3].u.mi.dx = restoreX;
+        inputs[3].u.mi.dy = restoreY;
+        inputs[3].u.mi.dwFlags = 0x8001; // MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE
+
         NativeMethods.SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<NativeMethods.INPUT>());
+    }
+
+    private static void SimulateDoubleClick(int screenX, int screenY)
+    {
+        NativeMethods.GetCursorPos(out var savedPos);
+
+        int normalizedX = screenX * 65535 / NativeMethods.GetSystemMetrics(0);
+        int normalizedY = screenY * 65535 / NativeMethods.GetSystemMetrics(1);
+        int restoreX = savedPos.X * 65535 / NativeMethods.GetSystemMetrics(0);
+        int restoreY = savedPos.Y * 65535 / NativeMethods.GetSystemMetrics(1);
+
+        var inputs = new NativeMethods.INPUT[6];
+
+        inputs[0].type = 0;
+        inputs[0].u.mi.dx = normalizedX;
+        inputs[0].u.mi.dy = normalizedY;
+        inputs[0].u.mi.dwFlags = 0x8001; // MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE
+
+        inputs[1].type = 0;
+        inputs[1].u.mi.dwFlags = 0x0002; // MOUSEEVENTF_LEFTDOWN
+
+        inputs[2].type = 0;
+        inputs[2].u.mi.dwFlags = 0x0004; // MOUSEEVENTF_LEFTUP
+
+        inputs[3].type = 0;
+        inputs[3].u.mi.dwFlags = 0x0002; // MOUSEEVENTF_LEFTDOWN
+
+        inputs[4].type = 0;
+        inputs[4].u.mi.dwFlags = 0x0004; // MOUSEEVENTF_LEFTUP
+
+        inputs[5].type = 0;
+        inputs[5].u.mi.dx = restoreX;
+        inputs[5].u.mi.dy = restoreY;
+        inputs[5].u.mi.dwFlags = 0x8001; // MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE
+
+        NativeMethods.SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<NativeMethods.INPUT>());
+    }
+
+    private static int CountVisibleWindows(HashSet<uint> targetPids)
+    {
+        int count = 0;
+        NativeMethods.EnumWindows((hwnd, _) =>
+        {
+            NativeMethods.GetWindowThreadProcessId(hwnd, out uint pid);
+            if (targetPids.Contains(pid)
+                && NativeMethods.IsWindowVisible(hwnd)
+                && NativeMethods.GetWindowTextLength(hwnd) > 0)
+            {
+                NativeMethods.GetWindowRect(hwnd, out NativeMethods.RECT rc);
+                if (rc.Area > 50000) count++;
+            }
+            return true;
+        }, IntPtr.Zero);
+        return count;
     }
 
     public static bool TryClickTrayIcon(IEnumerable<uint> targetPids)
