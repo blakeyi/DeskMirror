@@ -105,9 +105,13 @@ public partial class MirrorWindow : Window
         _dragStartPoint = null;
         _dragIcon = null;
 
-        // Internal-only format so dropping outside the mirror window does nothing
-        var data = new System.Windows.DataObject(InternalDragFormat, path);
-        System.Windows.DragDrop.DoDragDrop((DependencyObject)sender, data, DragDropEffects.Link);
+        var data = new System.Windows.DataObject();
+        data.SetData(InternalDragFormat, path);
+        // Also provide FileDrop so external apps (Cursor, VS Code, etc.) can accept the drop
+        if (File.Exists(path) || Directory.Exists(path))
+            data.SetFileDropList(new System.Collections.Specialized.StringCollection { path });
+        System.Windows.DragDrop.DoDragDrop((DependencyObject)sender, data,
+            System.Windows.DragDropEffects.Copy | System.Windows.DragDropEffects.Link);
     }
 
     private void Icon_MouseRightButtonUp(object sender, MouseButtonEventArgs e)

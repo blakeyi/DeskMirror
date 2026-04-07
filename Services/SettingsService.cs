@@ -17,7 +17,7 @@ public static class SettingsService
 {
     private static readonly string SettingsDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "DesktopIconMirror");
+        "DeskMirror");
 
     private static readonly string SettingsFile = Path.Combine(SettingsDir, "settings.json");
 
@@ -71,11 +71,11 @@ public static class SettingsService
             {
                 var exePath = Environment.ProcessPath;
                 if (!string.IsNullOrEmpty(exePath))
-                    key.SetValue("DesktopIconMirror", $"\"{exePath}\"");
+                    key.SetValue("DeskMirror", $"\"{exePath}\"");
             }
             else
             {
-                key.DeleteValue("DesktopIconMirror", false);
+                key.DeleteValue("DeskMirror", false);
             }
         }
         catch

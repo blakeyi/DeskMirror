@@ -170,8 +170,43 @@ public static class DesktopIconEnumerator
         }
     }
 
+    private static readonly Dictionary<string, string> VirtualIcons = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["此电脑"] = "shell:MyComputerFolder",
+        ["This PC"] = "shell:MyComputerFolder",
+        ["回收站"] = "shell:RecycleBinFolder",
+        ["Recycle Bin"] = "shell:RecycleBinFolder",
+        ["控制面板"] = "shell:ControlPanelFolder",
+        ["Control Panel"] = "shell:ControlPanelFolder",
+        ["网络"] = "shell:NetworkPlacesFolder",
+        ["Network"] = "shell:NetworkPlacesFolder",
+    };
+
+    private static readonly Dictionary<string, string> VirtualIconClsids = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["此电脑"] = "::{20D04FE0-3AEA-1069-A2D7-08002B30309D}",
+        ["This PC"] = "::{20D04FE0-3AEA-1069-A2D7-08002B30309D}",
+        ["回收站"] = "::{645FF040-5081-101B-9F08-00AA002F954E}",
+        ["Recycle Bin"] = "::{645FF040-5081-101B-9F08-00AA002F954E}",
+        ["控制面板"] = "::{26EE0668-A00A-44D7-9371-BEB064C98683}",
+        ["Control Panel"] = "::{26EE0668-A00A-44D7-9371-BEB064C98683}",
+        ["网络"] = "::{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}",
+        ["Network"] = "::{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}",
+    };
+
     private static void ResolveIconDetails(DesktopIcon item)
     {
+        // Handle virtual system icons (此电脑, 回收站, etc.)
+        if (VirtualIcons.TryGetValue(item.Name, out var shellUri))
+        {
+            item.TargetPath = shellUri;
+            item.IsFolder = true;
+            if (VirtualIconClsids.TryGetValue(item.Name, out var clsid))
+                item.Icon = GetIconForPath(clsid, true);
+            item.Icon ??= GetFallbackIcon();
+            return;
+        }
+
         foreach (var dir in DesktopPaths)
         {
             try
@@ -200,7 +235,12 @@ public static class DesktopIconEnumerator
         item.Icon = GetFallbackIcon();
     }
 
-    private const int IconRequestSize = 512;
+    private static int _iconRequestSize = 256;
+
+    public static void SetDpiScale(double dpiScale)
+    {
+        _iconRequestSize = Math.Clamp((int)(48 * dpiScale * 2), 96, 256);
+    }
 
     private static BitmapSource? GetIconForPath(string path, bool isFolder)
     {
@@ -218,20 +258,27 @@ public static class DesktopIconEnumerator
             NativeMethods.SHCreateItemFromParsingName(
                 path, IntPtr.Zero, NativeMethods.IID_IShellItemImageFactory, out var obj);
 
-            var factory = (NativeMethods.IShellItemImageFactory)obj;
-            var size = new NativeMethods.SIZE(IconRequestSize, IconRequestSize);
-            int hr = factory.GetImage(size, NativeMethods.SIIGBF.ICONONLY | NativeMethods.SIIGBF.BIGGERSIZEOK, out var hBitmap);
-
-            if (hr != 0 || hBitmap == IntPtr.Zero)
-                return null;
-
             try
             {
-                return HBitmapToBitmapSource(hBitmap);
+                var factory = (NativeMethods.IShellItemImageFactory)obj;
+                var size = new NativeMethods.SIZE(_iconRequestSize, _iconRequestSize);
+                int hr = factory.GetImage(size, NativeMethods.SIIGBF.ICONONLY, out var hBitmap);
+
+                if (hr != 0 || hBitmap == IntPtr.Zero)
+                    return null;
+
+                try
+                {
+                    return HBitmapToBitmapSource(hBitmap);
+                }
+                finally
+                {
+                    NativeMethods.DeleteObject(hBitmap);
+                }
             }
             finally
             {
-                NativeMethods.DeleteObject(hBitmap);
+                Marshal.ReleaseComObject(obj);
             }
         }
         catch
@@ -260,6 +307,17 @@ public static class DesktopIconEnumerator
             {
                 Buffer.BlockCopy(pixels, (bmp.bmHeight - 1 - y) * stride,
                                  flipped, y * stride, stride);
+            }
+
+            // Fix alpha fringe: zero out RGB for fully transparent pixels
+            for (int i = 0; i < byteCount; i += 4)
+            {
+                if (flipped[i + 3] == 0)
+                {
+                    flipped[i] = 0;
+                    flipped[i + 1] = 0;
+                    flipped[i + 2] = 0;
+                }
             }
 
             var source = BitmapSource.Create(

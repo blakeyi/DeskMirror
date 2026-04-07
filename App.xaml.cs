@@ -47,8 +47,8 @@ public partial class App : Application
     {
         _trayIcon = new TaskbarIcon
         {
-            Icon = SystemIcons.Application,
-            ToolTipText = "Desktop Icon Mirror"
+            Icon = LoadAppIcon(),
+            ToolTipText = "DeskMirror"
         };
 
         var menu = new ContextMenu();
@@ -91,13 +91,19 @@ public partial class App : Application
     private void InitializeMirrorWindow()
     {
         var primary = MonitorDetector.GetPrimaryMonitor();
-        var secondary = !string.IsNullOrEmpty(_settings.TargetMonitorDeviceName)
-            ? MonitorDetector.GetAllMonitors().FirstOrDefault(m => m.DeviceName == _settings.TargetMonitorDeviceName)
-            : MonitorDetector.GetFirstSecondaryMonitor();
+        var allMonitors = MonitorDetector.GetAllMonitors();
+
+        MonitorData? secondary = null;
+        if (!string.IsNullOrEmpty(_settings.TargetMonitorDeviceName))
+        {
+            secondary = allMonitors.FirstOrDefault(
+                m => m.DeviceName == _settings.TargetMonitorDeviceName && !m.IsPrimary);
+        }
+        secondary ??= allMonitors.FirstOrDefault(m => !m.IsPrimary);
 
         if (primary == null || secondary == null)
         {
-            _trayIcon?.ShowBalloonTip("Desktop Icon Mirror",
+            _trayIcon?.ShowBalloonTip("DeskMirror",
                 "未检测到副屏，程序将在托盘等待。\n接入副屏后请右键刷新。",
                 BalloonIcon.Info);
             return;
@@ -107,6 +113,7 @@ public partial class App : Application
         _mirrorWindow = new MirrorWindow { DataContext = _viewModel };
 
         double dpiScale = GetDpiScaleForPoint(secondary.Bounds.Left, secondary.Bounds.Top);
+        DesktopIconEnumerator.SetDpiScale(dpiScale);
         _viewModel.Initialize(primary, secondary, dpiScale);
         _mirrorWindow.PlaceOnMonitor(secondary, dpiScale);
         _mirrorWindow.Show();
@@ -218,6 +225,22 @@ public partial class App : Application
         {
             return 1.0;
         }
+    }
+
+    private static System.Drawing.Icon LoadAppIcon()
+    {
+        try
+        {
+            var uri = new Uri("pack://application:,,,/icon.png");
+            var stream = Application.GetResourceStream(uri)?.Stream;
+            if (stream != null)
+            {
+                using var bmp = new System.Drawing.Bitmap(stream);
+                return System.Drawing.Icon.FromHandle(bmp.GetHicon());
+            }
+        }
+        catch { }
+        return SystemIcons.Application;
     }
 
     private void TrayMenu_ToggleVisibility(object sender, RoutedEventArgs e)

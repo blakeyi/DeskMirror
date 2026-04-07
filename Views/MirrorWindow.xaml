@@ -1,17 +1,12 @@
 <Window x:Class="DesktopIconMirror.Views.MirrorWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="clr-namespace:DesktopIconMirror.ViewModels"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
         ShowInTaskbar="False"
         Topmost="False"
         ResizeMode="NoResize">
-
-    <Window.DataContext>
-        <vm:MirrorViewModel />
-    </Window.DataContext>
 
     <Grid MouseLeftButtonDown="Grid_MouseLeftButtonDown">
         <ItemsControl ItemsSource="{Binding Icons}">

@@ -66,6 +66,13 @@ public partial class MirrorViewModel : ObservableObject
 
         try
         {
+            // Virtual system icons use shell: protocol
+            if (icon.TargetPath.StartsWith("shell:", StringComparison.OrdinalIgnoreCase))
+            {
+                Process.Start("explorer.exe", icon.TargetPath);
+                return;
+            }
+
             if (icon.TargetPath.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase)
                 && TryActivateExistingApp(icon.TargetPath, icon.Name))
                 return;
@@ -89,6 +96,8 @@ public partial class MirrorViewModel : ObservableObject
 
             var exeName = Path.GetFileNameWithoutExtension(targetExe);
             var processes = Process.GetProcessesByName(exeName);
+            try
+            {
             Trace.WriteLine($"[TryActivate] Process '{exeName}': found {processes.Length} instance(s)");
 
             if (processes.Length == 0)
@@ -122,6 +131,11 @@ public partial class MirrorViewModel : ObservableObject
             }
 
             Trace.WriteLine("[TryActivate] All strategies failed, falling back to Process.Start");
+            }
+            finally
+            {
+                foreach (var p in processes) p.Dispose();
+            }
         }
         catch (Exception ex)
         {
