@@ -1,8 +1,8 @@
-using DesktopIconMirror.Models;
-using DesktopIconMirror.ViewModels;
+using DeskMirror.Models;
+using DeskMirror.ViewModels;
 using Xunit;
 
-namespace DesktopIconMirror.Tests;
+namespace DeskMirror.Tests;
 
 public class MirrorViewModelTests
 {

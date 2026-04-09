@@ -1,7 +1,7 @@
 using System.Windows.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace DesktopIconMirror.Models;
+namespace DeskMirror.Models;
 
 public partial class DesktopIcon : ObservableObject
 {

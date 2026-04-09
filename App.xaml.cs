@@ -5,15 +5,15 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Threading;
-using DesktopIconMirror.Monitor;
-using DesktopIconMirror.Native;
-using DesktopIconMirror.Services;
-using DesktopIconMirror.Shell;
-using DesktopIconMirror.ViewModels;
-using DesktopIconMirror.Views;
+using DeskMirror.Monitor;
+using DeskMirror.Native;
+using DeskMirror.Services;
+using DeskMirror.Shell;
+using DeskMirror.ViewModels;
+using DeskMirror.Views;
 using Hardcodet.Wpf.TaskbarNotification;
 
-namespace DesktopIconMirror;
+namespace DeskMirror;
 
 public partial class App : Application
 {

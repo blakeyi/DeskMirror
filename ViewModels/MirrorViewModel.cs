@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using DesktopIconMirror.Models;
-using DesktopIconMirror.Monitor;
-using DesktopIconMirror.Native;
-using DesktopIconMirror.Shell;
+using DeskMirror.Models;
+using DeskMirror.Monitor;
+using DeskMirror.Native;
+using DeskMirror.Shell;
 
-namespace DesktopIconMirror.ViewModels;
+namespace DeskMirror.ViewModels;
 
 public partial class MirrorViewModel : ObservableObject
 {

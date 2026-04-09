@@ -2,9 +2,9 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Automation;
-using DesktopIconMirror.Native;
+using DeskMirror.Native;
 
-namespace DesktopIconMirror.Shell;
+namespace DeskMirror.Shell;
 
 internal static class TrayIconHelper
 {

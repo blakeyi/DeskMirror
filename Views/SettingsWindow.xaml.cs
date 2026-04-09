@@ -1,9 +1,9 @@
 using System.Windows;
 using System.Windows.Controls;
-using DesktopIconMirror.Monitor;
-using DesktopIconMirror.Services;
+using DeskMirror.Monitor;
+using DeskMirror.Services;
 
-namespace DesktopIconMirror.Views;
+namespace DeskMirror.Views;
 
 public partial class SettingsWindow : Window
 {

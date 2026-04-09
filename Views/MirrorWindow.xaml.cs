@@ -6,13 +6,13 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
-using DesktopIconMirror.Models;
-using DesktopIconMirror.Monitor;
-using DesktopIconMirror.Native;
-using DesktopIconMirror.Shell;
-using DesktopIconMirror.ViewModels;
+using DeskMirror.Models;
+using DeskMirror.Monitor;
+using DeskMirror.Native;
+using DeskMirror.Shell;
+using DeskMirror.ViewModels;
 
-namespace DesktopIconMirror.Views;
+namespace DeskMirror.Views;
 
 public partial class MirrorWindow : Window
 {
@@ -71,7 +71,7 @@ public partial class MirrorWindow : Window
         return IntPtr.Zero;
     }
 
-    private const string InternalDragFormat = "DesktopIconMirror_Path";
+    private const string InternalDragFormat = "DeskMirror_Path";
 
     private System.Windows.Point? _dragStartPoint;
     private DesktopIcon? _dragIcon;

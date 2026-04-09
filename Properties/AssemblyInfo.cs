@@ -1,3 +1,3 @@
 using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("DesktopIconMirror.Tests")]
+[assembly: InternalsVisibleTo("DeskMirror.Tests")]

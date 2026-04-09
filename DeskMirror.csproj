@@ -8,6 +8,8 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <NoWarn>WFO0003</NoWarn>
@@ -31,10 +33,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="DesktopIconMirror.Tests\**\*.cs" />
-    <EmbeddedResource Remove="DesktopIconMirror.Tests\**\*" />
-    <None Remove="DesktopIconMirror.Tests\**\*" />
-    <Page Remove="DesktopIconMirror.Tests\**\*" />
+    <Compile Remove="DeskMirror.Tests\**\*.cs" />
+    <EmbeddedResource Remove="DeskMirror.Tests\**\*" />
+    <None Remove="DeskMirror.Tests\**\*" />
+    <Page Remove="DeskMirror.Tests\**\*" />
   </ItemGroup>
 
   <ItemGroup>

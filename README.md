@@ -1,4 +1,4 @@
-# DesktopIconMirror
+# DeskMirror
 
 将主屏桌面图标镜像到副屏，实现多显示器环境下的桌面图标同步与交互。
 
@@ -30,7 +30,7 @@
   - 应用隐藏在系统托盘 → 通过 UI Automation 模拟点击托盘图标唤出（先单击，无响应则自动双击，兼容微信/Everything 等不同行为的应用）
   - 应用未运行 → `ShellExecute` 启动
 - **单击选中**：蓝色高亮选中效果
-- **右键菜单**：打开、打开文件位置、复制路径
+- **右键菜单**：打开、打开文件位置、属性、复制路径；可执行程序支持“以管理员身份运行”
 
 ### 拖放支持
 
@@ -67,13 +67,15 @@
 - 目标显示器选择
 - 图标大小调整
 - 刷新间隔设置
+- 镜像主屏布局 / 自动网格排列切换
 - 开机自启（注册表）
 - 配置持久化到 `%AppData%` JSON 文件
 
 ## 项目结构
 
 ```
-DesktopIconMirror/
+DeskMirror/
+├── DeskMirror.csproj / DeskMirror.slnx  # 项目文件与解决方案
 ├── App.xaml / App.xaml.cs          # 应用入口、托盘图标、全局异常处理
 ├── GlobalUsings.cs                 # WPF/WinForms 类型歧义解决
 ├── Models/
@@ -94,6 +96,7 @@ DesktopIconMirror/
 │   └── SettingsService.cs          # 设置持久化、开机自启
 ├── Native/
 │   └── NativeMethods.cs            # Win32 P/Invoke 声明
+├── DeskMirror.Tests/               # xUnit 测试项目
 └── app.manifest                    # PerMonitorV2 DPI 声明
 ```
 

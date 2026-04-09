@@ -5,10 +5,10 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
-using DesktopIconMirror.Native;
+using DeskMirror.Native;
 using Vanara.PInvoke;
 
-namespace DesktopIconMirror.Shell;
+namespace DeskMirror.Shell;
 
 /// <summary>Shows the same default Shell context menu as Explorer (Open, Properties, etc.).</summary>
 internal static class ShellContextMenuHelper

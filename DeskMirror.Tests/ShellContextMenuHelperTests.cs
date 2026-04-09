@@ -1,7 +1,7 @@
-using DesktopIconMirror.Shell;
+using DeskMirror.Shell;
 using Xunit;
 
-namespace DesktopIconMirror.Tests;
+namespace DeskMirror.Tests;
 
 public class ShellContextMenuHelperTests
 {

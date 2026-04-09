@@ -1,6 +1,6 @@
 using System.Windows.Forms;
 
-namespace DesktopIconMirror.Monitor;
+namespace DeskMirror.Monitor;
 
 public record MonitorData
 {

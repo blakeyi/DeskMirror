@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace DesktopIconMirror.Native;
+namespace DeskMirror.Native;
 
 internal static class NativeMethods
 {

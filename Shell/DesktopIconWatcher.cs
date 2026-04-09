@@ -1,9 +1,9 @@
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
-using DesktopIconMirror.Native;
+using DeskMirror.Native;
 
-namespace DesktopIconMirror.Shell;
+namespace DeskMirror.Shell;
 
 public class DesktopIconWatcher : IDisposable
 {

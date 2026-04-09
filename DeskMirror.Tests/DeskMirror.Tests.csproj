@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DesktopIconMirror.csproj" />
+    <ProjectReference Include="..\DeskMirror.csproj" />
   </ItemGroup>
 
 </Project>

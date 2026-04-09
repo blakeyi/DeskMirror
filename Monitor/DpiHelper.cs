@@ -1,8 +1,8 @@
 using System.Windows;
 using System.Windows.Media;
-using DesktopIconMirror.Native;
+using DeskMirror.Native;
 
-namespace DesktopIconMirror.Monitor;
+namespace DeskMirror.Monitor;
 
 public static class DpiHelper
 {

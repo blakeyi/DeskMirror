@@ -3,10 +3,10 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media.Imaging;
-using DesktopIconMirror.Models;
-using DesktopIconMirror.Native;
+using DeskMirror.Models;
+using DeskMirror.Native;
 
-namespace DesktopIconMirror.Shell;
+namespace DeskMirror.Shell;
 
 public static class DesktopIconEnumerator
 {
