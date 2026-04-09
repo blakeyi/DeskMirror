@@ -30,10 +30,12 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+#if DEBUG
         var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "debug.log");
         Trace.Listeners.Add(new TextWriterTraceListener(logPath));
         Trace.AutoFlush = true;
         Trace.WriteLine($"=== App started at {DateTime.Now} ===");
+#endif
 
         DispatcherUnhandledException += OnUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>

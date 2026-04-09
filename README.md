@@ -99,10 +99,46 @@ DesktopIconMirror/
 
 ## 构建与运行
 
+### 开发调试
+
+用于本地开发、调试和查看 `debug.log`：
+
 ```powershell
 dotnet build
 dotnet run
 ```
+
+调试输出位于：
+
+```text
+bin/Debug/net10.0-windows/
+```
+
+### Release 发布
+
+用于生成发给其他人的单文件版本：
+
+```powershell
+dotnet publish -c Release
+```
+
+发布完成后，可分发的单文件产物位于：
+
+```text
+dist/release/DeskMirror.exe
+```
+
+### 运行环境
+
+- 仅支持 Windows 10 / Windows 11 64 位
+- `Release` 为单文件自包含发布，目标机器通常无需额外安装 .NET
+- `Debug` 为开发构建，包含日志与多文件输出，不建议直接分发
+
+### 发布说明
+
+- 对外分发时，直接提供 `dist/release/DeskMirror.exe`
+- `Release` 默认不输出 `debug.log`
+- 若需排查问题，建议使用 `Debug` 版本复现并查看 `bin/Debug/net10.0-windows/debug.log`
 
 ## 依赖
 

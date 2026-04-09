@@ -15,6 +15,17 @@
     <ApplicationIcon>app.ico</ApplicationIcon>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <ReleaseDropDir>$(MSBuildProjectDirectory)\dist\release\</ReleaseDropDir>
+  </PropertyGroup>
+
   <ItemGroup>
     <Resource Include="icon.png" />
   </ItemGroup>
@@ -33,5 +44,14 @@
     <PackageReference Include="Vanara.PInvoke.Shell32" Version="5.0.1" />
     <PackageReference Include="Vanara.PInvoke.User32" Version="5.0.1" />
   </ItemGroup>
+
+  <Target Name="PrepareReleaseDropDir" BeforeTargets="Publish" Condition="'$(Configuration)' == 'Release'">
+    <RemoveDir Directories="$(ReleaseDropDir)" />
+    <MakeDir Directories="$(ReleaseDropDir)" />
+  </Target>
+
+  <Target Name="CopyReleaseSingleFile" AfterTargets="Publish" Condition="'$(Configuration)' == 'Release'">
+    <Copy SourceFiles="$(OutputPath)publish\$(AssemblyName).exe" DestinationFolder="$(ReleaseDropDir)" />
+  </Target>
 
 </Project>
