@@ -1,4 +1,4 @@
-<Window x:Class="DesktopIconMirror.Views.MirrorWindow"
+﻿<Window x:Class="DesktopIconMirror.Views.MirrorWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         WindowStyle="None"
@@ -38,18 +38,17 @@
                             Drop="Icon_Drop"
                             MouseLeftButtonDown="Icon_MouseLeftButtonDown"
                             MouseMove="Icon_MouseMove"
-                            MouseRightButtonUp="Icon_MouseRightButtonUp">
-
-                        <Border.InputBindings>
-                            <MouseBinding Gesture="LeftDoubleClick"
-                                          Command="{Binding DataContext.OpenIconCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                          CommandParameter="{Binding}" />
-                        </Border.InputBindings>
+                            PreviewMouseRightButtonUp="Icon_PreviewMouseRightButtonUp">
 
                         <StackPanel Width="72">
-                            <Image Source="{Binding Icon}" Width="48" Height="48"
-                                   HorizontalAlignment="Center"
-                                   RenderOptions.BitmapScalingMode="HighQuality" />
+                            <!-- Image uses per-pixel alpha hit-test; solid hit-slab + non-hit visual fixes hollow icons -->
+                            <Grid Width="48" Height="48" HorizontalAlignment="Center">
+                                <Border Background="#01FFFFFF" />
+                                <Image Source="{Binding Icon}"
+                                       Width="48" Height="48"
+                                       IsHitTestVisible="False"
+                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                            </Grid>
                             <TextBlock Text="{Binding Name}"
                                        Foreground="White"
                                        TextAlignment="Center"

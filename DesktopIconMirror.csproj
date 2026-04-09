@@ -20,6 +20,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="DesktopIconMirror.Tests\**\*.cs" />
+    <EmbeddedResource Remove="DesktopIconMirror.Tests\**\*" />
+    <None Remove="DesktopIconMirror.Tests\**\*" />
+    <Page Remove="DesktopIconMirror.Tests\**\*" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
     <PackageReference Include="Vanara.PInvoke.ComCtl32" Version="5.0.1" />

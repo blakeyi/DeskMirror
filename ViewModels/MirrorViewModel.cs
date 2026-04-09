@@ -268,6 +268,22 @@ public partial class MirrorViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void RunAsAdministrator(DesktopIcon? icon)
+    {
+        if (icon == null || string.IsNullOrEmpty(icon.TargetPath) || !CanRunAsAdministrator(icon))
+            return;
+
+        try
+        {
+            Process.Start(BuildRunAsAdminStartInfo(icon.TargetPath));
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Failed to run as administrator for {icon.TargetPath}: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
     private void ShowProperties(DesktopIcon? icon)
     {
         if (icon == null || string.IsNullOrEmpty(icon.TargetPath))
@@ -275,16 +291,32 @@ public partial class MirrorViewModel : ObservableObject
 
         try
         {
-            var psi = new ProcessStartInfo("explorer.exe")
-            {
-                Arguments = $"/select,\"{icon.TargetPath}\"",
-                UseShellExecute = true
-            };
-            Process.Start(psi);
+            Process.Start(BuildShowPropertiesStartInfo(icon.TargetPath));
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Failed to show properties for {icon.TargetPath}: {ex.Message}");
         }
     }
+
+    internal static ProcessStartInfo BuildShowPropertiesStartInfo(string targetPath) =>
+        new(targetPath)
+        {
+            Verb = "properties",
+            UseShellExecute = true
+        };
+
+    internal static ProcessStartInfo BuildRunAsAdminStartInfo(string targetPath) =>
+        new(targetPath)
+        {
+            Verb = "runas",
+            UseShellExecute = true
+        };
+
+    internal static bool CanRunAsAdministrator(DesktopIcon? icon) =>
+        icon != null
+        && !string.IsNullOrEmpty(icon.TargetPath)
+        && !icon.IsFolder
+        && !icon.TargetPath.StartsWith("shell:", StringComparison.OrdinalIgnoreCase)
+        && !icon.TargetPath.StartsWith("::", StringComparison.OrdinalIgnoreCase);
 }

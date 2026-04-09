@@ -36,6 +36,11 @@ public partial class App : Application
         Trace.WriteLine($"=== App started at {DateTime.Now} ===");
 
         DispatcherUnhandledException += OnUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            Trace.WriteLine($"[FATAL] UnhandledException: {args.ExceptionObject}");
+            Trace.Flush();
+        };
 
         _settings = SettingsService.Load();
         InitializeTrayIcon();
@@ -317,7 +322,8 @@ public partial class App : Application
 
     private void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        Debug.WriteLine($"Unhandled exception: {e.Exception}");
+        Trace.WriteLine($"[UI] DispatcherUnhandledException: {e.Exception}");
+        Trace.Flush();
         e.Handled = true;
     }
 }

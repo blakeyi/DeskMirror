@@ -9,6 +9,7 @@ using System.Windows.Media;
 using DesktopIconMirror.Models;
 using DesktopIconMirror.Monitor;
 using DesktopIconMirror.Native;
+using DesktopIconMirror.Shell;
 using DesktopIconMirror.ViewModels;
 
 namespace DesktopIconMirror.Views;
@@ -60,7 +61,7 @@ public partial class MirrorWindow : Window
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (msg == NativeMethods.WM_WINDOWPOSCHANGING && !DesktopShown)
+        if (msg == NativeMethods.WM_WINDOWPOSCHANGING && !DesktopShown && !ShellContextMenuHelper.IsMenuActive)
         {
             var pos = Marshal.PtrToStructure<NativeMethods.WINDOWPOS>(lParam);
             pos.hwndInsertAfter = NativeMethods.HWND_BOTTOM;
@@ -75,14 +76,35 @@ public partial class MirrorWindow : Window
     private System.Windows.Point? _dragStartPoint;
     private DesktopIcon? _dragIcon;
 
+    private static DesktopIcon? FindIconFromOriginalSource(DependencyObject? source)
+    {
+        while (source != null)
+        {
+            if (source is FrameworkElement fe && fe.DataContext is DesktopIcon icon)
+                return icon;
+            source = VisualTreeHelper.GetParent(source);
+        }
+        return null;
+    }
+
     private void Icon_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (sender is FrameworkElement fe && fe.DataContext is DesktopIcon icon)
+        if (FindIconFromOriginalSource(e.OriginalSource as DependencyObject) is not DesktopIcon icon)
+            return;
+
+        if (e.ClickCount == 2)
+        {
+            ViewModel.OpenIconCommand.Execute(icon);
+            _dragStartPoint = null;
+            _dragIcon = null;
+        }
+        else
         {
             ViewModel.SelectIconCommand.Execute(icon);
             _dragStartPoint = e.GetPosition(this);
             _dragIcon = icon;
         }
+
         e.Handled = true;
     }
 
@@ -114,18 +136,21 @@ public partial class MirrorWindow : Window
             System.Windows.DragDropEffects.Copy | System.Windows.DragDropEffects.Link);
     }
 
-    private void Icon_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    private void Icon_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
     {
-        if (sender is FrameworkElement fe && fe.DataContext is DesktopIcon icon)
-        {
-            ViewModel.SelectIconCommand.Execute(icon);
-            ShowIconContextMenu(icon, e);
-        }
+        if (FindIconFromOriginalSource(e.OriginalSource as DependencyObject) is not DesktopIcon icon)
+            return;
+
+        ViewModel.SelectIconCommand.Execute(icon);
+        ShowIconContextMenu(icon, e);
         e.Handled = true;
     }
 
     private void ShowIconContextMenu(DesktopIcon icon, MouseButtonEventArgs e)
     {
+        bool isShellItem = !string.IsNullOrEmpty(icon.TargetPath)
+            && icon.TargetPath.StartsWith("shell:", StringComparison.OrdinalIgnoreCase);
+
         var menu = new ContextMenu();
 
         var openItem = new MenuItem { Header = "打开(_O)" };
@@ -134,9 +159,29 @@ public partial class MirrorWindow : Window
 
         if (!string.IsNullOrEmpty(icon.TargetPath))
         {
-            var locationItem = new MenuItem { Header = "打开文件位置(_L)" };
-            locationItem.Click += (_, _) => ViewModel.OpenFileLocationCommand.Execute(icon);
-            menu.Items.Add(locationItem);
+            if (MirrorViewModel.CanRunAsAdministrator(icon))
+            {
+                var runAsAdminItem = new MenuItem { Header = "以管理员身份运行(_A)" };
+                runAsAdminItem.Click += (_, _) => ViewModel.RunAsAdministratorCommand.Execute(icon);
+                menu.Items.Add(runAsAdminItem);
+            }
+
+            if (!isShellItem)
+            {
+                var locationItem = new MenuItem { Header = "打开文件位置(_L)" };
+                locationItem.Click += (_, _) => ViewModel.OpenFileLocationCommand.Execute(icon);
+                menu.Items.Add(locationItem);
+
+                var propertiesItem = new MenuItem { Header = "属性(_R)" };
+                propertiesItem.Click += (_, _) => ViewModel.ShowPropertiesCommand.Execute(icon);
+                menu.Items.Add(propertiesItem);
+            }
+            else
+            {
+                var propertiesItem = new MenuItem { Header = "属性(_R)" };
+                propertiesItem.Click += (_, _) => ViewModel.ShowPropertiesCommand.Execute(icon);
+                menu.Items.Add(propertiesItem);
+            }
 
             menu.Items.Add(new Separator());
 

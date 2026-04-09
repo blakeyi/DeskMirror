@@ -138,6 +138,13 @@ internal static class NativeMethods
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
     public static extern int SHParseDisplayName(string pszName, IntPtr pbc, out IntPtr ppidl, uint sfgaoIn, out uint psfgaoOut);
 
+    [DllImport("shell32.dll", ExactSpelling = true)]
+    public static extern int SHBindToParent(
+        IntPtr pidl,
+        [In, MarshalAs(UnmanagedType.LPStruct)] Guid riid,
+        [MarshalAs(UnmanagedType.Interface)] out object ppv,
+        out IntPtr ppidlLast);
+
     [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
     public static extern void SHCreateItemFromParsingName(
         string pszPath, IntPtr pbc,
@@ -376,6 +383,44 @@ internal static class NativeMethods
     }
 
     public static readonly Guid IID_IShellItemImageFactory = new("bcc18b79-ba16-442f-80c4-8a59c30c463b");
+    public static readonly Guid IID_IShellFolder = new("000214E6-0000-0000-C000-000000000046");
+    public static readonly Guid IID_IContextMenu = new("000214E4-0000-0000-C000-000000000046");
+
+    [ComImport]
+    [Guid("000214E6-0000-0000-C000-000000000046")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface IShellFolderNative
+    {
+        [PreserveSig]
+        int ParseDisplayName(IntPtr hwnd, IntPtr pbc, [MarshalAs(UnmanagedType.LPWStr)] string pszDisplayName, ref uint pchEaten, out IntPtr ppidl, ref uint pdwAttributes);
+
+        [PreserveSig]
+        int EnumObjects(IntPtr hwnd, int grfFlags, out IntPtr ppenumIDList);
+
+        [PreserveSig]
+        int BindToObject(IntPtr pidl, IntPtr pbc, [In, MarshalAs(UnmanagedType.LPStruct)] Guid riid, [MarshalAs(UnmanagedType.Interface)] out object ppv);
+
+        [PreserveSig]
+        int BindToStorage(IntPtr pidl, IntPtr pbc, [In, MarshalAs(UnmanagedType.LPStruct)] Guid riid, [MarshalAs(UnmanagedType.Interface)] out object ppv);
+
+        [PreserveSig]
+        int CompareIDs(IntPtr lParam, IntPtr pidl1, IntPtr pidl2);
+
+        [PreserveSig]
+        int CreateViewObject(IntPtr hwndOwner, [In, MarshalAs(UnmanagedType.LPStruct)] Guid riid, [MarshalAs(UnmanagedType.Interface)] out object ppv);
+
+        [PreserveSig]
+        int GetAttributesOf(uint cidl, IntPtr[] apidl, ref uint rgfInOut);
+
+        [PreserveSig]
+        int GetUIObjectOf(IntPtr hwndOwner, uint cidl, IntPtr[] apidl, ref Guid riid, IntPtr rgfReserved, out IntPtr ppv);
+
+        [PreserveSig]
+        int GetDisplayNameOf(IntPtr pidl, uint uFlags, out IntPtr pName);
+
+        [PreserveSig]
+        int SetNameOf(IntPtr hwnd, IntPtr pidl, [MarshalAs(UnmanagedType.LPWStr)] string pszName, uint uFlags, out IntPtr ppidlOut);
+    }
 
     [ComImport]
     [Guid("bcc18b79-ba16-442f-80c4-8a59c30c463b")]

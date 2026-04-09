@@ -201,7 +201,8 @@ public static class DesktopIconEnumerator
         {
             item.TargetPath = shellUri;
             item.IsFolder = true;
-            if (VirtualIconClsids.TryGetValue(item.Name, out var clsid))
+            item.Icon = GetIconForPath(shellUri, true);
+            if (item.Icon == null && VirtualIconClsids.TryGetValue(item.Name, out var clsid))
                 item.Icon = GetIconForPath(clsid, true);
             item.Icon ??= GetFallbackIcon();
             return;
@@ -309,15 +310,22 @@ public static class DesktopIconEnumerator
                                  flipped, y * stride, stride);
             }
 
-            // Fix alpha fringe: zero out RGB for fully transparent pixels
+            // DIB is straight (non-premultiplied) BGRA; Pbgra32 requires premultiplied alpha.
+            const byte alphaCutoff = 8;
             for (int i = 0; i < byteCount; i += 4)
             {
-                if (flipped[i + 3] == 0)
+                byte b = flipped[i];
+                byte g = flipped[i + 1];
+                byte r = flipped[i + 2];
+                byte a = flipped[i + 3];
+                if (a == 0 || a < alphaCutoff)
                 {
-                    flipped[i] = 0;
-                    flipped[i + 1] = 0;
-                    flipped[i + 2] = 0;
+                    flipped[i] = flipped[i + 1] = flipped[i + 2] = flipped[i + 3] = 0;
+                    continue;
                 }
+                flipped[i] = (byte)((b * a + 127) / 255);
+                flipped[i + 1] = (byte)((g * a + 127) / 255);
+                flipped[i + 2] = (byte)((r * a + 127) / 255);
             }
 
             var source = BitmapSource.Create(
