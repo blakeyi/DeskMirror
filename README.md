@@ -2,6 +2,12 @@
 
 将主屏桌面图标镜像到副屏，实现多显示器环境下的桌面图标同步与交互。
 
+## 许可与版权
+
+**DeskMirror** · Copyright © 2026 blakeyi  
+
+本软件以 [**GNU General Public License v3.0**](LICENSE)（GPL-3.0）发布，完整许可证文本见仓库根目录 `LICENSE`。
+
 ## 技术栈
 
 - C# / WPF / .NET 10
