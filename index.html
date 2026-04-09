@@ -2,14 +2,25 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Begin Jekyll SEO tag v2.6.1（参考常见项目页写法，与 DeskMirror 内容对齐） -->
     <title>DeskMirror | 多显示器桌面图标镜像</title>
     <meta name="description" content="将主屏桌面图标镜像到副屏，支持双击打开、拖放、右键菜单与托盘，在 Windows 10/11 多显示器环境下保持图标布局同步。" />
-    <meta name="theme-color" content="#155799">
     <meta property="og:title" content="DeskMirror" />
+    <meta property="og:locale" content="zh_CN" />
     <meta property="og:description" content="将主屏桌面图标镜像到副屏，多显示器环境下的桌面图标同步与交互。" />
-    <meta property="og:type" content="website" />
     <link rel="canonical" href="https://blakeyi.github.io/DeskMirror/" />
+    <link rel="shortcut icon" href="https://raw.githubusercontent.com/blakeyi/DeskMirror/master/icon.png" type="image/png" />
+    <meta property="og:url" content="https://blakeyi.github.io/DeskMirror/" />
+    <meta property="og:site_name" content="DeskMirror" />
+    <meta property="og:type" content="website" />
+    <script type="application/ld+json">
+        {"@context":"https://schema.org","@type":"WebSite","name":"DeskMirror","headline":"DeskMirror","url":"https://blakeyi.github.io/DeskMirror/","description":"将主屏桌面图标镜像到副屏，支持双击打开、拖放、右键菜单与托盘，在 Windows 10/11 多显示器环境下保持图标布局同步。"}
+    </script>
+    <!-- End Jekyll SEO tag -->
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#155799">
     <style>
         :root { color-scheme: light dark; }
         * { box-sizing: border-box; }
@@ -70,11 +81,8 @@
         .screenshot-grid {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 1.25rem;
+            gap: 1.5rem;
             margin-top: 0.75rem;
-        }
-        @media (min-width: 720px) {
-            .screenshot-grid { grid-template-columns: 1fr 1fr; }
         }
         .screenshot-grid figure {
             margin: 0;
@@ -94,9 +102,35 @@
             height: auto;
             border-radius: 8px;
             border: 1px solid #d0d7de;
+            cursor: zoom-in;
         }
         @media (prefers-color-scheme: dark) {
             .screenshot-grid img { border-color: #30363d; }
+        }
+        .lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.88);
+            cursor: zoom-out;
+        }
+        .lightbox.is-open {
+            display: flex;
+        }
+        .lightbox img {
+            max-width: 100%;
+            max-height: calc(100vh - 2rem);
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            border-radius: 4px;
+            cursor: default;
+            border: none;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
         }
         .note {
             margin-top: 2rem;
@@ -107,6 +141,14 @@
         }
         @media (prefers-color-scheme: dark) {
             .note { background: rgba(88, 166, 255, 0.12); }
+        }
+        .badges {
+            margin: 0 0 0.25rem;
+            line-height: 0;
+        }
+        .badges img {
+            vertical-align: middle;
+            margin: 0 6px 8px 0;
         }
     </style>
 </head>
@@ -121,6 +163,16 @@
     </section>
 
     <section class="main-content">
+        <p class="badges">
+            <img src="https://img.shields.io/github/stars/blakeyi/DeskMirror.svg" alt="GitHub stars" />
+            <img src="https://img.shields.io/github/forks/blakeyi/DeskMirror.svg" alt="GitHub forks" />
+            <img src="https://img.shields.io/github/issues/blakeyi/DeskMirror.svg" alt="GitHub issues" />
+            <img src="https://img.shields.io/github/license/blakeyi/DeskMirror.svg" alt="License" />
+            <img src="https://img.shields.io/github/languages/top/blakeyi/DeskMirror.svg" alt="Top language" />
+            <img src="https://img.shields.io/github/release/blakeyi/DeskMirror.svg" alt="Latest release" />
+            <img src="https://img.shields.io/github/downloads/blakeyi/DeskMirror/total.svg" alt="GitHub downloads" />
+        </p>
+
         <h2>主要能力</h2>
         <ul>
             <li>读取主屏桌面图标（名称、位置），通过 <code> SysListView32 </code> 跨进程同步坐标。</li>
@@ -140,14 +192,68 @@
         <div class="screenshot-grid">
             <figure>
                 <figcaption>主屏</figcaption>
-                <img src="screenshot-primary.png" alt="主屏桌面" loading="lazy" />
+                <img src="https://raw.githubusercontent.com/blakeyi/DeskMirror/master/images/main.png" alt="主屏桌面" loading="lazy" />
             </figure>
             <figure>
                 <figcaption>副屏（镜像）</figcaption>
-                <img src="screenshot-secondary.png" alt="副屏 DeskMirror 镜像效果" loading="lazy" />
+                <img src="https://raw.githubusercontent.com/blakeyi/DeskMirror/master/images/mirror.png" alt="副屏 DeskMirror 镜像效果" loading="lazy" />
             </figure>
         </div>
 
     </section>
+
+    <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="截图放大预览" hidden>
+        <img id="lightbox-img" src="" alt="" />
+    </div>
+
+    <script>
+        (function () {
+            var lightbox = document.getElementById('lightbox');
+            var lightboxImg = document.getElementById('lightbox-img');
+            if (!lightbox || !lightboxImg) return;
+
+            function openLightbox(src, alt) {
+                lightboxImg.src = src;
+                lightboxImg.alt = alt || '';
+                lightbox.hidden = false;
+                lightbox.classList.add('is-open');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeLightbox() {
+                lightbox.classList.remove('is-open');
+                lightbox.hidden = true;
+                lightboxImg.removeAttribute('src');
+                lightboxImg.alt = '';
+                document.body.style.overflow = '';
+            }
+
+            document.querySelectorAll('.screenshot-grid img').forEach(function (img) {
+                img.addEventListener('click', function () {
+                    openLightbox(img.currentSrc || img.src, img.alt);
+                });
+                img.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openLightbox(img.currentSrc || img.src, img.alt);
+                    }
+                });
+                img.setAttribute('tabindex', '0');
+            });
+
+            lightbox.addEventListener('click', function (e) {
+                if (e.target === lightbox) closeLightbox();
+            });
+            lightboxImg.addEventListener('click', function (e) {
+                e.stopPropagation();
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && lightbox.classList.contains('is-open')) {
+                    closeLightbox();
+                }
+            });
+        })();
+    </script>
 </body>
 </html>
