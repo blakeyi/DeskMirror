@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DeskMirror | 多显示器桌面图标镜像</title>
+    <meta name="description" content="将主屏桌面图标镜像到副屏，支持双击打开、拖放、右键菜单与托盘，在 Windows 10/11 多显示器环境下保持图标布局同步。" />
+    <meta name="theme-color" content="#155799">
+    <meta property="og:title" content="DeskMirror" />
+    <meta property="og:description" content="将主屏桌面图标镜像到副屏，多显示器环境下的桌面图标同步与交互。" />
+    <meta property="og:type" content="website" />
+    <link rel="canonical" href="https://blakeyi.github.io/DeskMirror/" />
+    <style>
+        :root { color-scheme: light dark; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", system-ui, sans-serif;
+            line-height: 1.6;
+            color: #1a1a1a;
+            background: #f6f8fa;
+        }
+        @media (prefers-color-scheme: dark) {
+            body { color: #e6edf3; background: #0d1117; }
+            .main-content { color: #c9d1d9; }
+            .main-content h2 { color: #f0f6fc; border-color: #30363d; }
+        }
+        .page-header {
+            padding: 2.5rem 1.5rem 3rem;
+            text-align: center;
+            background: linear-gradient(120deg, #155799, #159957);
+            color: #fff;
+        }
+        .project-name {
+            margin: 0 0 0.5rem;
+            font-size: clamp(1.75rem, 5vw, 2.75rem);
+            font-weight: 600;
+        }
+        .project-tagline {
+            margin: 0 auto 1.5rem;
+            max-width: 40rem;
+            font-size: 1.15rem;
+            font-weight: 400;
+            opacity: 0.95;
+        }
+        .btn {
+            display: inline-block;
+            margin: 0.35rem;
+            padding: 0.65rem 1.1rem;
+            border: 1px solid rgba(255,255,255,0.55);
+            border-radius: 6px;
+            color: #fff;
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+        .btn:hover { background: rgba(255,255,255,0.12); }
+        .main-content {
+            max-width: 48rem;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 4rem;
+        }
+        .main-content h2 {
+            margin-top: 2rem;
+            padding-bottom: 0.35rem;
+            border-bottom: 1px solid #d0d7de;
+            font-size: 1.35rem;
+        }
+        .main-content ul { margin: 0.75rem 0 0; padding-left: 1.25rem; }
+        .main-content li { margin: 0.35rem 0; }
+        .screenshot-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.25rem;
+            margin-top: 0.75rem;
+        }
+        @media (min-width: 720px) {
+            .screenshot-grid { grid-template-columns: 1fr 1fr; }
+        }
+        .screenshot-grid figure {
+            margin: 0;
+        }
+        .screenshot-grid figcaption {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #24292f;
+        }
+        @media (prefers-color-scheme: dark) {
+            .screenshot-grid figcaption { color: #c9d1d9; }
+        }
+        .screenshot-grid img {
+            display: block;
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            border: 1px solid #d0d7de;
+        }
+        @media (prefers-color-scheme: dark) {
+            .screenshot-grid img { border-color: #30363d; }
+        }
+        .note {
+            margin-top: 2rem;
+            padding: 0.85rem 1rem;
+            border-radius: 6px;
+            background: rgba(21, 87, 153, 0.08);
+            font-size: 0.9rem;
+        }
+        @media (prefers-color-scheme: dark) {
+            .note { background: rgba(88, 166, 255, 0.12); }
+        }
+    </style>
+</head>
+<body>
+    <section class="page-header">
+        <h1 class="project-name">DeskMirror</h1>
+        <h2 class="project-tagline">
+            将主屏 Explorer 桌面上的图标镜像到副屏，按比例映射位置，在透明 Overlay 上完成双击打开、选中高亮、拖放与常用右键操作。
+        </h2>
+        <a href="https://github.com/blakeyi/DeskMirror" class="btn">GitHub 仓库</a>
+        <a href="https://github.com/blakeyi/DeskMirror/releases/latest" class="btn">下载发布版</a>
+    </section>
+
+    <section class="main-content">
+        <h2>主要能力</h2>
+        <ul>
+            <li>读取主屏桌面图标（名称、位置），通过 <code> SysListView32 </code> 跨进程同步坐标。</li>
+            <li>副屏无边框透明 Overlay，贴桌面底层 Z-order，适配 PerMonitorV2 DPI。</li>
+            <li>双击行为贴近真实桌面：已有窗口则激活、托盘应用可尝试 UI Automation / 工具栏唤出，否则 <code> ShellExecute </code> 启动。</li>
+            <li>支持拖出到副屏其它图标、从资源管理器拖入打开或复制到文件夹；桌面变更与坐标轮询保持同步。</li>
+            <li>系统托盘：显示/隐藏、刷新、设置（显示器、图标大小、轮询间隔、镜像布局、开机自启）。</li>
+        </ul>
+
+        <h2>运行环境</h2>
+        <ul>
+            <li>操作系统：Windows 10 / 11（64 位）。</li>
+            <li>技术栈：C# / WPF / .NET 10，Release 构建可为单文件自包含，一般无需单独安装运行时。</li>
+        </ul>
+
+        <h2 id="运行截图">运行截图</h2>
+        <div class="screenshot-grid">
+            <figure>
+                <figcaption>主屏</figcaption>
+                <img src="screenshot-primary.png" alt="主屏桌面" loading="lazy" />
+            </figure>
+            <figure>
+                <figcaption>副屏（镜像）</figcaption>
+                <img src="screenshot-secondary.png" alt="副屏 DeskMirror 镜像效果" loading="lazy" />
+            </figure>
+        </div>
+
+    </section>
+</body>
+</html>
